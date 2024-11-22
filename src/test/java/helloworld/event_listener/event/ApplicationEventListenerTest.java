@@ -205,4 +205,54 @@ class ApplicationEventListenerTest {
 		}
 	}
 
+	@Nested
+	@DisplayName("이벤트 리스너를 비동기로 처리하는 테스트")
+	class AsyncListener {
+
+		/**
+		 * Listener: @EventListener
+		 * NotificationService txPropagation: REQUIRES_NEW
+		 * 일부 테스트가 실패해야 정상
+		 */
+		@RepeatedTest(50)
+		@DisplayName("비동기는 작업 실행 순서를 보장하지 않기 때문에, @EventListener 를 사용하면"
+				+ "이벤트 발행측에서 트랜잭션 자원이 커밋되기 전에"
+				+ "이벤트 수신측에서 접근할 수 있어 문제가 발생할 수 있다.")
+		void test() {
+			// given, when: 정상 모집공고 저장 성공, 알림 이벤트는 일부 테스트에서 NoSuchElementException 발생
+			recruitment = recruitmentService.create(member, recruitmentTitle);
+
+			// then
+			assertThat(recruitmentRepository.findAll()).isNotEmpty(); // 모집공고 커밋 성공
+
+			// 비동기 작업 추적
+			await().atMost(1, TimeUnit.SECONDS)
+					.untilAsserted(() ->
+							assertThat(notificationRepository.findAll()).isNotEmpty()
+					);
+		}
+
+		/**
+		 * Listener: @TransactionalEventListener
+		 * NotificationService txPropagation: REQUIRES_NEW
+		 */
+		@RepeatedTest(50)
+		@DisplayName("@TransactionalEventListener 를 사용하면 "
+				+ "이벤트 발행측의 트랜잭션이 종료되고 비동기 로직을 호출하기 때문에"
+				+ "커밋 타이밍으로 인한 문제가 발생하지 않는다.")
+		void test2() {
+			// given, when: 정상 모집공고 저장 성공, 알림 이벤트는 일부 테스트에서 NoSuchElementException 발생
+			recruitment = recruitmentService.create(member, recruitmentTitle);
+
+			// then
+			assertThat(recruitmentRepository.findAll()).isNotEmpty(); // 모집공고 커밋 성공
+
+			// 비동기 작업 추적
+			await().atMost(1, TimeUnit.SECONDS)
+					.untilAsserted(() ->
+							assertThat(notificationRepository.findAll()).isNotEmpty()
+					);
+		}
+	}
+
 }
