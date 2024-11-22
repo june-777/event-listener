@@ -166,4 +166,43 @@ class ApplicationEventListenerTest {
 		}
 	}
 
+	/**
+	 * Listener: @TransactionalEventListener
+	 */
+	@Nested
+	@DisplayName("@TransactionalEventListener 트랜잭션 테스트")
+	class TransactionalEventListenerNewTxTest {
+
+		/**
+		 * Listener: @TransactionalEventListener
+		 * NotificationService txPropagation: REQUIRED
+		 */
+		@Test
+		@DisplayName("수신측의 트랜잭션 전파 옵션이 REQUIRED 인 경우 기존의 트랜잭션과 합쳐지고, "
+				+ "수신측 실행 시점 (after_commit)엔 이미 커밋되었기 때문에 수신측의 커밋은 무시된다.")
+		void test() {
+			// given, when: 모집공고 서비스 성공, 알림 서비스 성공
+			recruitment = recruitmentService.create(member, recruitmentTitle);
+
+			// then
+			assertThat(recruitmentRepository.findAll()).isNotEmpty();    // 모집공고는 커밋 성공
+			assertThat(notificationRepository.findAll()).isEmpty();        // 알림은 커밋 무시
+		}
+
+		/**
+		 * Listener: @TransactionalEventListener
+		 * NotificationService txPropagation: REQUIRES_NEW
+		 */
+		@Test
+		@DisplayName("수신측의 트랜잭션 전파 옵션이 REQUIRES_NEW 인 경우, 새로운 트랜잭션이 생성되었으므로 커밋된다.")
+		void test2() {
+			// given, when: 정상 모집공고 저장 성공, 알림 이벤트 발행 성공
+			recruitment = recruitmentService.create(member, recruitmentTitle);
+
+			// then
+			assertThat(recruitmentRepository.findAll()).isNotEmpty();    // 모집공고 커밋 성공
+			assertThat(notificationRepository.findAll()).isNotEmpty();        // 알림 커밋 성공
+		}
+	}
+
 }
