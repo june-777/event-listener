@@ -138,4 +138,32 @@ class ApplicationEventListenerTest {
 		}
 	}
 
+	/**
+	 * Listener: @EventListener
+	 * NotificationService txPropagation: REQUIRES_NEW
+	 */
+	@Nested
+	@DisplayName("@EventListener 와 REQUIRES_NEW 트랜잭션 테스트")
+	class EventListenerNewTxTest {
+
+		@Test
+		@DisplayName("이벤트 발행자 / 수신자의 트랜잭션이 분리되어, 발행측에서 영속화한 엔티티를 수신측에서 조회하지 못한다.")
+		void test() {
+			// given, when: 모집공고 서비스 성공, 알림 서비스 예외, 모집공고 서비스에서 예외 핸들링 X
+			assertThatThrownBy(() -> recruitmentService.create(member, recruitmentTitle))
+					.isInstanceOf(NoSuchElementException.class);
+		}
+
+		@Test
+		@DisplayName("이벤트 발행자 / 수신자의 트랜잭션이 분리되고, 발행자가 예외를 정상처리 하였으므로 커밋 / 롤백이 정상 분리된다.")
+		void test2() {
+			// given, when: 모집공고 서비스는 성공, 알림 서비스는 예외, 모집공고 서비스에서 예외 핸들링 O
+			recruitmentService.createWithExceptionHandle(member, recruitmentTitle);
+
+			// then:
+			assertThat(recruitmentRepository.findAll()).isNotEmpty();    // 커밋
+			assertThat(notificationRepository.findAll()).isEmpty();        // 롤백
+		}
+	}
+
 }

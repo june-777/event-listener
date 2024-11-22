@@ -19,7 +19,8 @@ public class ApplicationEventListener {
 		boolean txActive = TransactionSynchronizationManager.isActualTransactionActive();
 		log.info("[ApplicationEventListener] event! {} received, txActive - {}", event, txActive);
 
-		notificationService.notify(event);
+		// notificationService.notify(event);	// REQUIRES_NEW 테스트하려면 주석처리
+		notificationService.notifyWithNewTx(event);	// REQUIRED 테스트하려면 주석처리
 
 		log.info("[ApplicationEventListener] event finished, txActive - {}", txActive);
 	}
